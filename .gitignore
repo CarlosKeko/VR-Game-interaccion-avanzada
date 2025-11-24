@@ -33,6 +33,7 @@
 
 # Visual Studio cache directory
 /Proyecto Fantasma/.vs/
+/Proyecto Fantasma/Textures.meta
 
 # Gradle cache directory
 /Proyecto Fantasma/.gradle/
