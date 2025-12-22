@@ -1,94 +1,98 @@
 using UnityEngine;
-using UnityEngine.XR.Interaction.Toolkit;
+using System.Collections; // Necesario para las Corrutinas
 
-public class RadioDialController : MonoBehaviour
+public class RadioReparacionSimple : MonoBehaviour
 {
-    // Esta será la variable global que afectará al juego (sonido, enemigos, etc.)
-    public float SintonizacionGlobal = 0f;
+    [Header("Configuración de Reparación")]
+    public float tiempoNecesario = 3f;
+    private float tiempoActual = 0f;
+    public bool estaArreglada = true; // Empezamos con la radio bien
+    private bool tocandoDial = false;
 
-    // Variable para almacenar la rotación inicial de la rueda.
-    private float rotationOffset;
-    private float previousRotation = 0f;
+    [Header("Configuración de Averías")]
+    public float tiempoMinParaRomper = 10f; // Mínimo 10 segundos funcionando
+    public float tiempoMaxParaRomper = 30f; // Máximo 30 segundos funcionando
 
-    // Puedes ajustar cuánto afecta la rotación a la sintonización
-    [Tooltip("Grados de rotación necesarios para cambiar la sintonización en 1 unidad.")]
-    public float gradosPorUnidad = 5f;
+    [Header("Audio")]
+    public AudioSource ruidoBlanco;
+    public AudioSource musicaLimpia;
 
-    private void Start()
+    void Start()
     {
-        // En este ejemplo, usaremos la rotación alrededor del eje Y local
-        rotationOffset = transform.localEulerAngles.y;
-        previousRotation = GetClampedRotation();
+        // Iniciamos la radio en estado normal
+        musicaLimpia.volume = 1f;
+        ruidoBlanco.volume = 0f;
+        musicaLimpia.Play();
+        ruidoBlanco.Play();
+
+        // Lanzamos el ciclo de averías aleatorias
+        StartCoroutine(CicloDeAverias());
     }
 
-    private void Update()
+    IEnumerator CicloDeAverias()
     {
-        // Obtenemos la rotación actual.
-        float currentRotation = GetClampedRotation();
-
-        // Calculamos cuánto ha cambiado la rotación desde el frame anterior.
-        float rotationDelta = currentRotation - previousRotation;
-
-        // Manejar el "wrap-around" (cuando pasa de 359 a 0 o viceversa).
-        // Esto es esencial si la rueda gira 360 grados sin límites.
-        if (rotationDelta > 180)
+        while (true) // Bucle infinito para que pase durante toda la partida
         {
-            rotationDelta -= 360;
+            // 1. Esperar a que la radio esté arreglada
+            yield return new WaitUntil(() => estaArreglada);
+
+            // 2. Esperar un tiempo aleatorio antes de que se estropee
+            float esperaAleatoria = Random.Range(tiempoMinParaRomper, tiempoMaxParaRomper);
+            yield return new WaitForSeconds(esperaAleatoria);
+
+            // 3. ¡ESTROPEAR LA RADIO!
+            EstropearRadio();
         }
-        else if (rotationDelta < -180)
-        {
-            rotationDelta += 360;
-        }
-
-        // Convertimos el cambio de rotación en un cambio en la sintonización.
-        float tuningDelta = rotationDelta / gradosPorUnidad;
-
-        // Aplicamos el cambio a la variable global.
-        SintonizacionGlobal += tuningDelta;
-
-        // Opcional: Limitar la sintonización a un rango (ej: 0 a 100).
-        SintonizacionGlobal = Mathf.Clamp(SintonizacionGlobal, 0f, 100f);
-
-        // Actualizamos la rotación anterior para el siguiente frame.
-        previousRotation = currentRotation;
-
-        print(rotationDelta);
-
-        // Lógica de sonido/juego (llamar a la función que revisa la sintonización)
-        CheckRadioState();
     }
 
-    // Función que lee la rotación y la "aplana" a un rango de 0-360.
-    private float GetClampedRotation()
+    void EstropearRadio()
     {
-        // Usamos transform.localEulerAngles y elegimos el eje correcto.
-        float rotation = transform.localEulerAngles.y;
-
-        // Normalizamos de 0 a 360.
-        if (rotation < 0)
-        {
-            rotation += 360;
-        }
-
-        return rotation;
+        estaArreglada = false;
+        tiempoActual = 0f;
+        ruidoBlanco.volume = 1f;
+        musicaLimpia.volume = 0f;
+        Debug.Log("⚠️ ¡La radio se ha estropeado!");
     }
 
-    // --- Lógica del Juego (Sintonización y Sonido) ---
-    private void CheckRadioState()
+    void Update()
     {
-        // Aquí debes implementar la lógica que mencionaste:
-        // 1. Número de sintonización objetivo (random)
-        // 2. Ruido de radio rota / Ruido de radio sintonizada
+        if (!estaArreglada && tocandoDial)
+        {
+            tiempoActual += Time.deltaTime;
+            float progreso = tiempoActual / tiempoNecesario;
 
-        // Por ejemplo:
-        // float targetFrequency = GetComponentInParent<RadioComponent>().TargetFrequency;
-        // if (Mathf.Abs(SintonizacionGlobal - targetFrequency) < 1.0f)
-        // {
-        //    // Radio bien sintonizada (silencia el ruido roto, activa el sonido de "funciona")
-        // }
-        // else
-        // {
-        //    // Radio mal sintonizada (activa el ruido de radio rota)
-        // }
+            // Feedback de audio: a medida que reparas, vuelve la música
+            ruidoBlanco.volume = 1f - progreso;
+            musicaLimpia.volume = progreso;
+
+            if (tiempoActual >= tiempoNecesario)
+            {
+                ArreglarRadio();
+            }
+        }
+        else if (!estaArreglada && !tocandoDial)
+        {
+            // Si sueltas, vuelve a sonar solo el ruido
+            ruidoBlanco.volume = 1f;
+            musicaLimpia.volume = 0f;
+        }
+    }
+
+    private void ArreglarRadio()
+    {
+        estaArreglada = true;
+        ruidoBlanco.volume = 0f;
+        musicaLimpia.volume = 1f;
+        Debug.Log("✅ ¡Radio arreglada!");
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Player") || other.CompareTag("Hand")) tocandoDial = true;
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("Player") || other.CompareTag("Hand")) tocandoDial = false;
     }
 }
