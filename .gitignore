@@ -107,3 +107,8 @@
 /Proyecto Fantasma/[Bb]uilds/
 /Proyecto Fantasma/[Ll]ogs/
 /Proyecto Fantasma/[Uu]ser[Ss]ettings/
+
+
+# Ignore big content data
+/Proyecto Fantasma/Assets/assetsIgnore/
+/Proyecto Fantasma/Assets/assetsIgnore.meta
