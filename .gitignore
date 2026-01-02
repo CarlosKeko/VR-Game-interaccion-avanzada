@@ -34,6 +34,12 @@
 # Visual Studio cache directory
 /Proyecto Fantasma/.vs/
 /Proyecto Fantasma/[Aa]ssets/Textures.meta
+/Proyecto Fantasma/[Aa]ssets/Sounds/
+/Proyecto Fantasma/[Aa]ssets/kg2t9h4mscg0-Radio/
+/Proyecto Fantasma/[Aa]ssets/Copia radio/
+/Proyecto Fantasma/[Aa]ssets/Forst/
+/Proyecto Fantasma/[Aa]ssets/AllSkyFree/
+/Proyecto Fantasma/[Aa]ssets/TerrainTexturesPackFree/
 
 # Gradle cache directory
 /Proyecto Fantasma/.gradle/
