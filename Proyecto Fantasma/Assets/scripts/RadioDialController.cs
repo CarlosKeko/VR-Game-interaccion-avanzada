@@ -1,98 +1,176 @@
 using UnityEngine;
-using System.Collections; // Necesario para las Corrutinas
+using UnityEngine.XR.Interaction.Toolkit;
+using UnityEngine.XR.Interaction.Toolkit.Interactables;
+using UnityEngine.InputSystem;
+using System.Collections;
 
-public class RadioReparacionSimple : MonoBehaviour
+public class RadioControlador : MonoBehaviour
 {
     [Header("Configuración de Reparación")]
     public float tiempoNecesario = 3f;
     private float tiempoActual = 0f;
-    public bool estaArreglada = true; // Empezamos con la radio bien
-    private bool tocandoDial = false;
+    public bool estaArreglada = true;
 
     [Header("Configuración de Averías")]
-    public float tiempoMinParaRomper = 10f; // Mínimo 10 segundos funcionando
-    public float tiempoMaxParaRomper = 30f; // Máximo 30 segundos funcionando
+    public float tiempoMinParaRomper = 5f;
+    public float tiempoMaxParaRomper = 10f;
+
+    [Header("Referencias de Acción")]
+    public InputActionReference accionReparar;
 
     [Header("Audio")]
     public AudioSource ruidoBlanco;
     public AudioSource musicaLimpia;
 
+    private XRGrabInteractable grabPadre; // Referencia al grab del padre
+    private bool estaSiendoAgarrada = false;
+    private bool pulsandoBotonReparar = false;
+    private bool tocandoConDedo = false;
+
+    void Awake()
+    {
+        if (accionReparar != null) accionReparar.action.Enable();
+
+        // Buscamos el Grab Interactable específicamente en el objeto de arriba (el padre)
+        // Usamos transform.parent para ir directamente a la "Radio"
+        if (transform.parent != null)
+        {
+            grabPadre = transform.parent.GetComponent<XRGrabInteractable>();
+        }
+
+        // Si no lo encuentra por jerarquía directa, lo buscamos en los ancestros
+        if (grabPadre == null)
+        {
+            grabPadre = GetComponentInParent<XRGrabInteractable>();
+        }
+
+        // DEBUG: Para estar seguros de qué objeto estamos escuchando
+        if (grabPadre != null)
+            Debug.Log("Escuchando el agarre de: " + grabPadre.gameObject.name);
+    }
+
     void Start()
     {
-        // Iniciamos la radio en estado normal
-        musicaLimpia.volume = 1f;
-        ruidoBlanco.volume = 0f;
-        musicaLimpia.Play();
-        ruidoBlanco.Play();
-
-        // Lanzamos el ciclo de averías aleatorias
         StartCoroutine(CicloDeAverias());
     }
 
     IEnumerator CicloDeAverias()
     {
-        while (true) // Bucle infinito para que pase durante toda la partida
+        while (true)
         {
-            // 1. Esperar a que la radio esté arreglada
             yield return new WaitUntil(() => estaArreglada);
-
-            // 2. Esperar un tiempo aleatorio antes de que se estropee
-            float esperaAleatoria = Random.Range(tiempoMinParaRomper, tiempoMaxParaRomper);
-            yield return new WaitForSeconds(esperaAleatoria);
-
-            // 3. ¡ESTROPEAR LA RADIO!
-            EstropearRadio();
+            yield return new WaitForSeconds(Random.Range(tiempoMinParaRomper, tiempoMaxParaRomper));
+            if (estaArreglada) EstropearRadio();
         }
     }
 
-    void EstropearRadio()
+    public void EstropearRadio()
     {
         estaArreglada = false;
         tiempoActual = 0f;
         ruidoBlanco.volume = 1f;
         musicaLimpia.volume = 0f;
-        Debug.Log("⚠️ ¡La radio se ha estropeado!");
+        Debug.Log("⚠️ Radio estropeada.");
+    }
+
+    void OnEnable()
+    {
+        if (accionReparar != null)
+        {
+            accionReparar.action.performed += AlPulsarBoton;
+            accionReparar.action.canceled += AlSoltarBoton;
+        }
+
+        // Nos suscribimos a los eventos del PADRE
+        if (grabPadre != null)
+        {
+            grabPadre.selectEntered.AddListener(AlSerAgarrada);
+            grabPadre.selectExited.AddListener(AlSerSoltada);
+        }
+    }
+
+    void OnDisable()
+    {
+        if (accionReparar != null)
+        {
+            accionReparar.action.performed -= AlPulsarBoton;
+            accionReparar.action.canceled -= AlSoltarBoton;
+        }
+
+        if (grabPadre != null)
+        {
+            grabPadre.selectEntered.RemoveListener(AlSerAgarrada);
+            grabPadre.selectExited.RemoveListener(AlSerSoltada);
+        }
+    }
+
+    private void AlSerAgarrada(SelectEnterEventArgs args) => estaSiendoAgarrada = true;
+    private void AlSerSoltada(SelectExitEventArgs args)
+    {
+        estaSiendoAgarrada = false;
+        ReiniciarProgreso();
+    }
+
+    private void AlPulsarBoton(InputAction.CallbackContext context) => pulsandoBotonReparar = true;
+    private void AlSoltarBoton(InputAction.CallbackContext context) => pulsandoBotonReparar = false;
+
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Player") || other.CompareTag("Hand")) tocandoConDedo = true;
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("Player") || other.CompareTag("Hand")) tocandoConDedo = false;
     }
 
     void Update()
     {
-        if (!estaArreglada && tocandoDial)
+        if (estaArreglada) return;
+
+        // Ahora detectamos si el padre está agarrado Y pulsamos el botón
+        bool intentandoRepararConBoton = estaSiendoAgarrada && pulsandoBotonReparar;
+        bool intentandoRepararConDedo = tocandoConDedo;
+
+        if (intentandoRepararConBoton || intentandoRepararConDedo)
         {
-            tiempoActual += Time.deltaTime;
-            float progreso = tiempoActual / tiempoNecesario;
-
-            // Feedback de audio: a medida que reparas, vuelve la música
-            ruidoBlanco.volume = 1f - progreso;
-            musicaLimpia.volume = progreso;
-
-            if (tiempoActual >= tiempoNecesario)
+            // Mantenemos el test de reparación instantánea para el botón
+            if (intentandoRepararConBoton)
             {
                 ArreglarRadio();
             }
+            else
+            {
+                tiempoActual += Time.deltaTime;
+                float progreso = Mathf.Clamp01(tiempoActual / tiempoNecesario);
+                ruidoBlanco.volume = 1f - progreso;
+                musicaLimpia.volume = progreso;
+
+                if (tiempoActual >= tiempoNecesario) ArreglarRadio();
+            }
         }
-        else if (!estaArreglada && !tocandoDial)
+        else
         {
-            // Si sueltas, vuelve a sonar solo el ruido
+            ReiniciarProgreso();
+        }
+    }
+
+    void ReiniciarProgreso()
+    {
+        tiempoActual = 0f;
+        if (!estaArreglada)
+        {
             ruidoBlanco.volume = 1f;
             musicaLimpia.volume = 0f;
         }
     }
 
-    private void ArreglarRadio()
+    void ArreglarRadio()
     {
         estaArreglada = true;
         ruidoBlanco.volume = 0f;
         musicaLimpia.volume = 1f;
-        Debug.Log("✅ ¡Radio arreglada!");
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Player") || other.CompareTag("Hand")) tocandoDial = true;
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        if (other.CompareTag("Player") || other.CompareTag("Hand")) tocandoDial = false;
+        tiempoActual = 0f;
+        Debug.Log("✅ Radio arreglada con éxito.");
     }
 }
