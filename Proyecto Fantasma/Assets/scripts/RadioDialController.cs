@@ -6,6 +6,9 @@ using System.Collections;
 
 public class RadioControlador : MonoBehaviour
 {
+    public EnemySpawner spawner;
+    public bool eliminarEnemigosAlReparar = true;
+
     [Header("Configuración de Reparación")]
     public float tiempoNecesario = 3f;
     private float tiempoActual = 0f;
@@ -70,7 +73,10 @@ public class RadioControlador : MonoBehaviour
         tiempoActual = 0f;
         ruidoBlanco.volume = 1f;
         musicaLimpia.volume = 0f;
-        Debug.Log("⚠️ Radio estropeada.");
+
+        if (spawner) spawner.SetSpawning(true);
+
+        Debug.Log("Radio estropeada.");
     }
 
     void OnEnable()
@@ -171,6 +177,13 @@ public class RadioControlador : MonoBehaviour
         ruidoBlanco.volume = 0f;
         musicaLimpia.volume = 1f;
         tiempoActual = 0f;
+
+        if (spawner)
+        {
+            spawner.SetSpawning(false);
+            if (eliminarEnemigosAlReparar) spawner.DespawnAll();
+        }
+
         Debug.Log("✅ Radio arreglada con éxito.");
     }
 }
