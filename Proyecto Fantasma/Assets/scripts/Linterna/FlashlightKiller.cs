@@ -3,14 +3,17 @@ using UnityEngine;
 public class FlashlightKiller : MonoBehaviour
 {
     [Header("Haz de la linterna")]
-    public Transform origenHaz;         
+    public Transform origenHaz;
     public float rango = 8f;
-    [Range(1f, 179f)] public float angulo = 25f; 
-    public LayerMask capaEnemigos;      
-    public LayerMask capaObstaculos;   
+    [Range(1f, 179f)] public float angulo = 25f;
+    public LayerMask capaEnemigos;
+    public LayerMask capaObstaculos;
 
     [Header("Tiempo de exposición")]
-    public float tiempoParaMatar = 0.4f; // segundos enfocando para morir
+    public float tiempoParaMatar = 2f; // segundos enfocando para morir
+
+    [Header("Audio mientras mata")]
+    public AudioSource audioMatar; // AudioSource en loop (no Play On Awake)
 
     // acumulador por enemigo (para que no sea instantáneo)
     private readonly System.Collections.Generic.Dictionary<EnemyFlashlightKill, float> tiempoVisto
@@ -25,6 +28,8 @@ public class FlashlightKiller : MonoBehaviour
     {
         if (!origenHaz) return;
 
+        bool estaMatandoEsteFrame = false;
+
         Collider[] hits = Physics.OverlapSphere(origenHaz.position, rango, capaEnemigos, QueryTriggerInteraction.Ignore);
 
         var vistosEsteFrame = new System.Collections.Generic.HashSet<EnemyFlashlightKill>();
@@ -38,15 +43,17 @@ public class FlashlightKiller : MonoBehaviour
             float dist = dir.magnitude;
             if (dist <= 0.001f) continue;
 
-            dir /= dist; 
+            dir /= dist;
 
             float a = Vector3.Angle(origenHaz.forward, dir);
             if (a > angulo) continue;
 
+            // Si hay un obstáculo entre la linterna y el enemigo, no cuenta
             if (Physics.Raycast(origenHaz.position, dir, out RaycastHit hit, dist, capaObstaculos, QueryTriggerInteraction.Ignore))
-            {
                 continue;
-            }
+
+            // Si llegamos aquí, el enemigo está iluminado (estamos “matando”)
+            estaMatandoEsteFrame = true;
 
             vistosEsteFrame.Add(enemy);
 
@@ -62,11 +69,19 @@ public class FlashlightKiller : MonoBehaviour
             }
         }
 
+        // Limpiar enemigos que ya no están iluminados
         var keys = new System.Collections.Generic.List<EnemyFlashlightKill>(tiempoVisto.Keys);
         foreach (var e in keys)
         {
             if (!vistosEsteFrame.Contains(e))
                 tiempoVisto.Remove(e);
+        }
+
+        // Control de audio (play/stop)
+        if (audioMatar != null)
+        {
+            if (estaMatandoEsteFrame && !audioMatar.isPlaying) audioMatar.Play();
+            if (!estaMatandoEsteFrame && audioMatar.isPlaying) audioMatar.Stop();
         }
     }
 

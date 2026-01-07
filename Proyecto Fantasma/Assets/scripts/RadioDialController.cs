@@ -74,7 +74,11 @@ public class RadioControlador : MonoBehaviour
         ruidoBlanco.volume = 1f;
         musicaLimpia.volume = 0f;
 
-        if (spawner) spawner.SetSpawning(true);
+        if (spawner)
+        {
+            spawner.SetSpawning(true); // empieza el spawn continuo
+            spawner.SpawnNow();        // spawnea 1 inmediatamente
+        }
 
         Debug.Log("Radio estropeada.");
     }
