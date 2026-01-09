@@ -6,6 +6,8 @@ using UnityEngine.UI;
 
 public class GameOverVR : MonoBehaviour
 {
+    public UIRaysToggle uiRays;
+
     [Header("UI")]
     public CanvasGroup canvasGroup;          // CanvasGroup del DeathCanvas
     public Image bloodImage;                // UI Image de sangre
@@ -47,6 +49,7 @@ public class GameOverVR : MonoBehaviour
     public void Morir()
     {
         if (muerto) return;
+        if (uiRays) uiRays.SetRays(true);
         muerto = true;
 
         // Desactivar gameplay
@@ -103,14 +106,18 @@ public class GameOverVR : MonoBehaviour
     // Botón: Reiniciar
     public void Restart()
     {
+        if (uiRays) uiRays.SetRays(false);
         Time.timeScale = 1f;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        UnityEngine.SceneManagement.SceneManager.LoadScene(
+            UnityEngine.SceneManagement.SceneManager.GetActiveScene().name
+        );
     }
 
     // Botón: Menú
     public void GoToMenu()
     {
+        if (uiRays) uiRays.SetRays(false);
         Time.timeScale = 1f;
-        SceneManager.LoadScene(menuSceneName);
+        UnityEngine.SceneManagement.SceneManager.LoadScene(menuSceneName);
     }
 }
