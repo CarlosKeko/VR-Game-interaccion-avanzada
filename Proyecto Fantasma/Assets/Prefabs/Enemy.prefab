@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 2911152350471652525}
   - component: {fileID: 8945521343972939288}
   - component: {fileID: 7048819672439557122}
+  - component: {fileID: 4647614203444370145}
   m_Layer: 8
   m_Name: Enemy
   m_TagString: Untagged
@@ -163,7 +164,7 @@ AudioSource:
   Priority: 256
   DopplerLevel: 1
   MinDistance: 1
-  MaxDistance: 15
+  MaxDistance: 25
   Pan2D: 0
   rolloffMode: 0
   BypassEffects: 0
@@ -238,3 +239,18 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &4647614203444370145
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 264728259109866467}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b05718ca1104614aa43c005ac0b72a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  objetivo: {fileID: 0}
+  distanciaMatar: 0.5
+  gameOver: {fileID: 0}

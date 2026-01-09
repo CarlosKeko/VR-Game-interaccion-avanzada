@@ -7,6 +7,9 @@ public class EnemySpawner : MonoBehaviour
     public GameObject enemyPrefab;
     public Transform objetivo;
 
+    [Header("Game Over")]
+    public GameOverVR gameOver;
+
     [Header("Spawn")]
     public float intervalo = 7f;
     public int maxEnemigos = 8;
@@ -15,8 +18,8 @@ public class EnemySpawner : MonoBehaviour
     public bool spawnear = false;
 
     [Header("Suelo")]
-    public LayerMask groundMask;          // Marca aquí la capa del suelo (Default, Environment...)
-    public float raycastHeight = 10f;     // desde arriba
+    public LayerMask groundMask;          
+    public float raycastHeight = 10f;     
     public float extraUp = 0.02f;         // para que no se “meta” en el suelo
 
     private float t;
@@ -57,12 +60,27 @@ public class EnemySpawner : MonoBehaviour
         // Apoyar al suelo usando collider (corrige pivots raros)
         PlaceOnGround(e, pos.y, extraUp);
 
-        var mover = e.GetComponent<EnemyMoveToTarget>();
+        // Movimiento hacia el objetivo
+        var mover = e.GetComponentInChildren<EnemyMoveToTarget>(true);
         if (mover)
         {
             mover.objetivo = objetivo;
             mover.controladoPorSpawner = true;
         }
+
+        var kill = e.GetComponentInChildren<EnemyKillOnReach>(true);
+        if (kill)
+        {
+            kill.objetivo = objetivo;
+
+            if (gameOver == null) gameOver = Object.FindFirstObjectByType<GameOverVR>();
+            kill.gameOver = gameOver;
+        }
+        else
+        {
+            Debug.LogWarning("El enemigo instanciado NO tiene EnemyKillOnReach en raíz ni en hijos: " + e.name);
+        }
+
     }
 
     void PlaceOnGround(GameObject enemy, float groundY, float up)
@@ -104,5 +122,4 @@ public class EnemySpawner : MonoBehaviour
 
         Spawn();
     }
-
 }
