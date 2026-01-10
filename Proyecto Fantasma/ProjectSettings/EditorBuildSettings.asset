@@ -9,7 +9,7 @@ EditorBuildSettings:
     path: Assets/Scenes/MenuPrincipalVR.unity
     guid: aa79bbac6071e4d44a45a860bd7f476a
   - enabled: 1
-    path: Assets/Scenes/Forest test.unity
+    path: Assets/Scenes/Forest.unity
     guid: 96b351e732af7a344a990747f57cb9d2
   - enabled: 1
     path: Assets/Scenes/SampleScene.unity
